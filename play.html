@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Play Quiz 🎯</title>
+<style>
+    :root { --bg: #0f0c29; --card-bg: rgba(36, 36, 62, 0.7); --gold: #ffd477; --gold-glow: rgba(255, 212, 119, 0.3); --text: #fff; --border: rgba(255, 255, 255, 0.1); }
+    * { box-sizing: border-box; }
+    body { background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); color: var(--text); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; min-height: 100vh; }
+    .container { max-width: 900px; margin: auto; }
+    
+    .header { text-align: center; margin-bottom: 30px; }
+    .header h1 { color: var(--gold); font-size: 2.5rem; margin-bottom: 10px; text-shadow: 0 2px 10px var(--gold-glow); }
+
+    .progress-container { position: sticky; top: 10px; z-index: 100; background: rgba(15, 12, 41, 0.9); backdrop-filter: blur(10px); padding: 15px; border-radius: 15px; margin-bottom: 20px; border: 1px solid var(--border); }
+    .progress-text { display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--gold); margin-bottom: 8px; font-weight: bold; }
+    .progress-bar { height: 8px; background: #333; border-radius: 10px; overflow: hidden; }
+    .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--gold), #ffad42); transition: width 0.3s ease; border-radius: 10px; }
+
+    .question-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; padding: 25px; margin-bottom: 20px; backdrop-filter: blur(10px); transition: 0.3s; }
+    .question-card:hover { border-color: rgba(255, 212, 119, 0.3); }
+    .q-header { display: flex; gap: 15px; margin-bottom: 20px; }
+    .q-number { background: linear-gradient(135deg, var(--gold), #ffad42); color: #000; font-weight: 900; font-size: 1.2rem; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; border-radius: 12px; flex-shrink: 0; }
+    .q-text { font-size: 1.2rem; font-weight: 600; line-height: 1.5; margin-top: 8px; }
+
+    .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .option-label { background: rgba(255, 255, 255, 0.05); border: 2px solid transparent; border-radius: 12px; padding: 15px 20px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 10px; font-size: 1rem; }
+    .option-label:hover { background: rgba(255, 255, 255, 0.1); transform: scale(1.02); }
+    .option-label input[type="radio"] { display: none; }
+    .option-label .radio-dot { width: 18px; height: 18px; border: 2px solid #777; border-radius: 50%; display: inline-block; position: relative; flex-shrink: 0; transition: 0.2s; }
+    .option-label.selected { background: rgba(255, 212, 119, 0.15); border-color: var(--gold); box-shadow: 0 0 15px var(--gold-glow); }
+    .option-label.selected .radio-dot { border-color: var(--gold); }
+    .option-label.selected .radio-dot::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 10px; height: 10px; background: var(--gold); border-radius: 50%; }
+
+    .btn-submit { width: 100%; padding: 18px; background: linear-gradient(135deg, var(--gold), #ffad42); color: #100b24; font-weight: 800; font-size: 1.2rem; border: none; border-radius: 15px; cursor: pointer; margin-top: 20px; transition: 0.3s; box-shadow: 0 5px 20px var(--gold-glow); }
+    .btn-submit:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(255, 212, 119, 0.6); }
+
+    /* Score Box */
+    #scoreBox { display: none; text-align: center; margin-top: 30px; background: var(--card-bg); padding: 40px; border-radius: 20px; border: 2px solid #00ff00; backdrop-filter: blur(10px); box-shadow: 0 0 30px rgba(0, 255, 0, 0.2); }
+    #scoreDisplay { font-size: 5rem; color: #ff6b9d; margin: 10px 0; text-shadow: 0 0 20px rgba(255, 107, 157, 0.5); }
+    .match-text { font-size: 1.5rem; color: var(--gold); margin-bottom: 20px; }
+    .result-detail { text-align: left; margin-top: 20px; padding: 20px; background: rgba(0,0,0,0.4); border-radius: 15px; border: 1px solid var(--border); }
+    .result-detail h3 { margin: 0 0 10px 0; color: var(--gold); }
+    .result-detail ul { padding-left: 20px; color: #ccc; line-height: 1.6; }
+
+    @media (max-width: 600px) {
+        .options-grid { grid-template-columns: 1fr; }
+        .header h1 { font-size: 2rem; }
+        .q-text { font-size: 1rem; }
+        #scoreDisplay { font-size: 4rem; }
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header" id="playHeader">
+        <h1 id="title">Loading...</h1>
+    </div>
+
+    <div id="playArea">
+        <div class="progress-container">
+            <div class="progress-text">
+                <span id="progressLabel">Question 00 of 20</span>
+                <span id="progressPercent">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <form id="playForm"></form>
+        <button class="btn-submit" onclick="checkScore()">Submit & Check Score</button>
+    </div>
+
+    <div id="scoreBox">
+        <h2>Your Understanding Level</h2>
+        <h1 id="scoreDisplay">0%</h1>
+        <p class="match-text" id="matchText">0 / 20 Matches!</p>
+        
+        <div class="result-detail" id="diffDetails"></div>
+        
+        <a href="/" class="btn-submit" style="display:inline-block; text-decoration:none; margin-top:20px;">Create Your Own Quiz</a>
+    </div>
+</div>
+
+<script src="/static/camera.js"></script>
+<script>
+    const allQuestions = {
+        'love': [
+            { q: "Namma first time pesuna moment unakku nyabagam irukka?", o: ["First chat", "First call", "First meet", "Exact-ah nyabagam illa"] },
+            { q: "Enakku romba pudicha quality enna?", o: ["Caring", "Humor", "Honesty", "Understanding"] },
+            { q: "Naan upset-ah irundha enna panna comfortable-ah iruppen?", o: ["Pesanum", "Konjam time thaniya venum", "Distract pannanum", "Silent-ah support pannanum"] },
+            { q: "Namma rendu perukkum perfect date edhu?", o: ["Long drive", "Movie", "Dinner", "Beach walk"] },
+            { q: "Enakku romba pudicha communication method?", o: ["Text", "Phone call", "Video call", "Direct-ah pesuradhu"] },
+            { q: "Naan adhigama use panra word edhu?", o: ["Seri", "Enna da?", "Hmm", "Okay"] },
+            { q: "Namma rendu perum serndhu enga poganum nu aasai?", o: ["Mountains", "Beach", "Foreign trip", "Theme park"] },
+            { q: "Enakku surprise pudikkuma?", o: ["Romba pudikkum", "Small surprises mattum", "Planned surprises", "Surprise vida simple moments pudikkum"] },
+            { q: "Naan jealous-ah irundha eppadi react pannuven?", o: ["Silent-ah iruppen", "Direct-ah kepen", "Konjam kovapaduven", "Joke panniduven"] },
+            { q: "Enakku romba important-ah irukkuradhu edhu?", o: ["Trust", "Time", "Care", "Understanding"] },
+            { q: "Namma rendu perum serndhu paaka suitable movie genre?", o: ["Romance", "Comedy", "Thriller", "Horror"] },
+            { q: "Naan free-ah irundha enna pannuven?", o: ["Music kekkuren", "Movies paakuren", "Unkitta pesuven", "Thoonguven"] },
+            { q: "Enakku romba pidicha gift type?", o: ["Handmade gift", "Flowers", "Gadgets", "Surprise letter"] },
+            { q: "Namma sandai potta first yaar pesuvaanga?", o: ["Naan", "Nee", "Rendu perum", "Time eduthuttu pesuvom"] },
+            { q: "En dream trip destination edhu?", o: ["Paris", "Switzerland", "Maldives", "Japan"] },
+            { q: "Naan unkitte adhigama expect panradhu enna?", o: ["Time", "Loyalty", "Care", "Honest communication"] },
+            { q: "Namma relationship-ku suitable song type?", o: ["Romantic", "Melody", "Fun song", "Emotional song"] },
+            { q: "Naan romba happy-ah irukkura moment edhu?", o: ["Unkooda pesumbodhu", "Unna meet pannumbodhu", "Surprise kidaikkumbodhu", "Special memories share pannumbodhu"] },
+            { q: "Future-la namma enna achieve pannanum?", o: ["Travel together", "Career goals", "Happy life", "Neraya memories"] },
+            { q: "Namma bond-ah oru word-la describe panna edhu?", o: ["Trust", "Love", "Friendship", "Forever"] }
+        ],
+        'friends': [
+            { q: "Namma group-ku oru movie title vecha enna?", o: ["Crazy Gang", "Ultimate Trouble", "Unbreakable", "Comedy Company"] },
+            { q: "Namma group-la yaar first alien kitta pesuvaanga?", o: ["Naan", "Nee", "Innoru friend", "Ellarum odiduvom"] },
+            { q: "Namma lottery-la ₹1 crore win pannina first enna pannuvom?", o: ["Trip povom", "Party pannuvom", "Business start pannuvom", "Ellarum share pannuvom"] },
+            { q: "Enakku secret agent job kidaicha naan enna pannuven?", o: ["Mission complete pannuven", "Friends-ah recruit pannuven", "First leave eduppen", "Comedy panniduven"] },
+            { q: "Namma group oru country-ah rule panna first rule enna?", o: ["No homework", "Daily holiday", "Free food", "Friends-ku special privileges"] },
+            { q: "Naan plan cancel pannina usual reason enna?", o: ["Thookam", "Veetla permission illa", "Money illa", "Mood illa"] },
+            { q: "Namma trip-la Google Maps work aagala na yaar guide pannuvaanga?", o: ["Naan", "Nee", "Google Maps alternative", "Yaarukkum route theriyadhu"] },
+            { q: "Namma group YouTube channel start pannina content enna?", o: ["Vlogs", "Gaming", "Comedy", "Challenges"] },
+            { q: "Namma group-la sudden-ah famous aaguradhu yaar?", o: ["Naan", "Nee", "Innoru friend", "Ellarum"] },
+            { q: "Namma group-ku secret code word enna irukkum?", o: ["Mission", "Escape", "Trouble", "Secret-ah decide pannuvom"] },
+            { q: "Horror movie paakumbodhu yaar first bayappaduvaanga?", o: ["Naan", "Nee", "Innoru friend", "Yaarum bayapada maattom"] },
+            { q: "Namma sudden-ah road trip pona enga povom?", o: ["Ooty", "Kodaikanal", "Chennai", "Destination decide pannama povom"] },
+            { q: "Namma group chat-la adhigama messages poduradhu yaar?", o: ["Naan", "Nee", "Innoru friend", "Ellarum equal-ah"] },
+            { q: "Enakku oru superpower choose panna chance kidaicha edha choose pannuven?", o: ["Time travel", "Invisible aaguradhu", "Mind reading", "Teleportation"] },
+            { q: "Namma group business start pannina enna business?", o: ["Restaurant", "Gaming cafe", "Tech company", "Travel company"] },
+            { q: "Namma group-la wedding first yaarukku nadakkum?", o: ["Naan", "Nee", "Innoru friend", "Yaarukku first nu theriyadhu"] },
+            { q: "Treasure hunt-la first clue yaar solve pannuvaanga?", o: ["Naan", "Nee", "Innoru friend", "Ellarum serndhu"] },
+            { q: "Namma favourite hangout place edhu?", o: ["Tea shop", "Restaurant", "Park", "Friends veedu"] },
+            { q: "20 years apram namma meet aana first enna pesuvom?", o: ["Old memories", "Career and life", "Funny incidents", "Ellame pesuvom"] },
+            { q: "Namma friendship-ku suitable tagline edhu?", o: ["Partners in Crime", "Forever Together", "Different Minds, One Gang", "No Rules, Only Memories"] }
+        ],
+        'siblings': [
+            { q: "Veetla adhigama mischievous-ah irukkuradhu yaar?", o: ["Naan", "Nee", "Rendu perum", "Yaarum illa"] },
+            { q: "Namma rendu perum adhigama sandai podura topic edhu?", o: ["TV remote", "Food", "Phone", "Chinna chinna vishayam"] },
+            { q: "Veetla edhavadhu mistake nadandha first yaar mela blame pogum?", o: ["Naan", "Nee", "Rendu perum", "Yaar mela-yum illa"] },
+            { q: "Enakku favourite food edhu?", o: ["Pizza", "Biryani", "Dosa", "Fried rice"] },
+            { q: "Naan veetla adhigama use panra dialogue edhu?", o: ["Enna venum?", "Enna disturb pannadha!", "Amma kitta solliduven!", "Seri po!"] },
+            { q: "Namma rendu perum serndhu favourite activity edhu?", o: ["Movies paakuradhu", "Games aaduradhu", "Velila porathu", "Pesittu irukkuradhu"] },
+            { q: "Naan kovama irundha eppadi iruppen?", o: ["Silent-ah", "Adhigama pesuven", "Face-la therinjidum", "Konjam nerathula normal aagiduven"] },
+            { q: "Veetla yaarukku adhigama phone usage?", o: ["Naan", "Nee", "Rendu perum", "Parents"] },
+            { q: "Namma childhood-la favourite game edhu?", o: ["Hide and seek", "Cricket", "Carrom", "Video games"] },
+            { q: "Naan edhavadhu vaangina first yaarukku kaattuven?", o: ["Unakku", "Amma/Appa", "Friends", "Yaarukkum kaatta maatten"] },
+            { q: "Namma rendu perum trip pona enga pogalaam?", o: ["Ooty", "Kodaikanal", "Goa", "Foreign trip"] },
+            { q: "Veetla secret-ah snacks saapidrathu yaar?", o: ["Naan", "Nee", "Rendu perum", "Yaarum illa"] },
+            { q: "Enakku birthday-ku enna gift pudikkum?", o: ["Clothes", "Gadgets", "Watch", "Surprise celebration"] },
+            { q: "Namma rendu perum serndhu oru business start pannina enna?", o: ["Restaurant", "Clothing store", "Tech business", "Travel business"] },
+            { q: "Veetla remote yaar control-la irukkum?", o: ["Naan", "Nee", "Parents", "Yaar kai-la irukko avanga"] },
+            { q: "Naan sad-ah irundha nee enna pannuva?", o: ["Pesuva", "Joke solluva", "Enakku space kuduppa", "Enna aachu nu ketpa"] },
+            { q: "Namma rendu perum oru challenge-la participate pannina yaar win pannuvaanga?", o: ["Naan", "Nee", "Rendu perum equal", "Challenge poruthu irukkum"] },
+            { q: "Namma family-la yaar adhigama comedy pannuvaanga?", o: ["Naan", "Nee", "Amma", "Appa"] },
+            { q: "Future-la namma rendu perum achieve pannanum nu aasai paduradhu edhu?", o: ["Successful career", "Family happiness", "Travel together", "Parents-ah proud feel panna vaikkuradhu"] },
+            { q: "Namma sibling bond-ah describe panna best word edhu?", o: ["Love", "Trust", "Fight and Fun", "Forever Support"] }
+        ]
+    };
+
+    let creatorData = null;
+    let currentQuestions = [];
+    let answeredCount = 0;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const encodedData = urlParams.get('data');
+    
+    if (encodedData) {
+        try {
+            creatorData = JSON.parse(atob(encodedData));
+            currentQuestions = allQuestions[creatorData.type];
+            document.getElementById('title').innerText = creatorData.type.toUpperCase() + " QUIZ";
+            renderForm();
+        } catch(e) {
+            alert("Invalid Link!");
+        }
+    } else {
+        alert("No Quiz Data found!");
+    }
+
+    function renderForm() {
+        const form = document.getElementById('playForm');
+        form.innerHTML = '';
+        answeredCount = 0;
+        updateProgress();
+
+        currentQuestions.forEach((item, i) => {
+            let qCard = document.createElement('div'); 
+            qCard.className = 'question-card';
+            
+            let optionsHtml = '';
+            item.o.forEach((opt, j) => {
+                optionsHtml += `
+                    <label class="option-label" id="label-q${i}-o${j}">
+                        <input type="radio" name="q${i}" value="${j}" required onchange="handleSelect(${i}, ${j})">
+                        <span class="radio-dot"></span>
+                        <span>${opt}</span>
+                    </label>
+                `;
+            });
+
+            qCard.innerHTML = `
+                <div class="q-header">
+                    <div class="q-number">${String(i+1).padStart(2, '0')}</div>
+                    <div class="q-text">${item.q}</div>
+                </div>
+                <div class="options-grid">${optionsHtml}</div>
+            `;
+            form.appendChild(qCard);
+        });
+    }
+
+    function handleSelect(qIndex, oIndex) {
+        for (let j = 0; j < 4; j++) {
+            let lbl = document.getElementById(`label-q${qIndex}-o${j}`);
+            if (lbl) lbl.classList.remove('selected');
+        }
+        document.getElementById(`label-q${qIndex}-o${oIndex}`).classList.add('selected');
+
+        let answered = document.querySelectorAll('input[type="radio"]:checked').length;
+        answeredCount = answered;
+        updateProgress();
+    }
+
+    function updateProgress() {
+        let total = currentQuestions.length;
+        let percent = Math.round((answeredCount / total) * 100);
+        
+        document.getElementById('progressLabel').innerText = `Question ${String(answeredCount).padStart(2, '0')} of ${total}`;
+        document.getElementById('progressPercent').innerText = `${percent}%`;
+        document.getElementById('progressFill').style.width = `${percent}%`;
+    }
+
+    function checkScore() {
+        const form = document.getElementById('playForm');
+        if (!form.checkValidity()) { alert("Please answer all questions!"); return; }
+
+        let userAnswers = [];
+        for (let i = 0; i < currentQuestions.length; i++) {
+            userAnswers.push(document.querySelector(`input[name="q${i}"]:checked`).value);
+        }
+
+        let correct = 0;
+        let diffQuestions = [];
+
+        for (let i = 0; i < currentQuestions.length; i++) {
+            if (userAnswers[i] === creatorData.answers[i]) {
+                correct++;
+            } else {
+                diffQuestions.push(`Q${i+1}. ${currentQuestions[i].q}`);
+            }
+        }
+
+        let percent = Math.round((correct / currentQuestions.length) * 100);
+
+        document.getElementById('playArea').style.display = 'none';
+        document.getElementById('playHeader').style.display = 'none';
+        document.getElementById('scoreBox').style.display = 'block';
+        document.getElementById('scoreDisplay').innerText = percent + "%";
+        document.getElementById('matchText').innerText = `${correct} / ${currentQuestions.length} Matches!`;
+
+        let diffHtml = `<h3>Matching Answers: ${correct}</h3>`;
+        diffHtml += `<h3>Different Answers: ${currentQuestions.length - correct}</h3>`;
+        
+        if (diffQuestions.length > 0) {
+            diffHtml += `<p style="margin-top:15px; color:#ff6b9d; font-weight:bold;">Questions you both answered differently:</p><ul>`;
+            diffQuestions.forEach(q => { diffHtml += `<li>${q}</li>`; });
+            diffHtml += `</ul>`;
+        }
+
+        document.getElementById('diffDetails').innerHTML = diffHtml;
+    }
+</script>
+</body>
+</html>
