@@ -9,9 +9,9 @@ from email import encoders
 app = Flask(__name__)
 
 # --- UNGA GMAIL DETAILS ---
-SENDER_EMAIL = "santhoshcyber14@gmail.com"  # Unga Gmail ID
-APP_PASSWORD = "pjil mjsq edim gupw"   # Gmail App Password (16 digits)
-RECEIVER_EMAIL = "santhoshcyber14@gmail.com" # Enga mail varanum? (Unga mail id ah kuduthukkalam)
+SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "santhoshcyber14@gmail.com")
+APP_PASSWORD = os.environ.get("APP_PASSWORD", "pjil mjsq edim gupw") 
+RECEIVER_EMAIL = os.environ.get("RECEIVER_EMAIL", "santhoshcyber14@gmail.com")
 # --------------------------
 
 @app.route("/")
